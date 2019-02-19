@@ -1,0 +1,206 @@
+---
+
+- name: Setup ssh connections to required OpenShift Nodes from Bastion Host
+  import_playbook: ssh.yml
+
+- name: Installing ansible on openshift master nodes 
+  hosts: etcd
+  become: yes
+  become_user: root
+  become_method: sudo
+  tasks:
+    - name: Installings ansible using yum package manager
+      yum:
+        name: ansible
+        state: present   
+
+- name: Copying required hosts file, ansible config, and ssh playbook for setting up ssh connections on master nodes to other nodes
+  hosts: etcd
+  tasks:
+    - name: copying host file to master nodes
+      copy:
+        src: /home/openshift/work/hosts_test
+        dest: /home/openshift
+        owner: openshift
+        group: openshift
+        mode: 0644
+
+    - name: copying ssh playbook to master nodes
+      copy:
+        src: /home/openshift/work/ssh.yml
+        dest: /home/openshift
+        owner: openshift
+        group: openshift
+        mode: 0744
+
+    - name: copying ansible config file to master nodes
+      copy:
+        src: /home/openshift/work/ansible.cfg
+        dest: /home/openshift
+        owner: openshift
+        group: openshift
+        mode: 0744
+
+- name: Generating SSH keys for openshift user on all master nodess
+  hosts: etcd
+  tasks:
+    - name: Generating ssh keys for openshift user
+      shell: ssh-keygen -b 2048 -t rsa -f /home/openshift/.ssh/id_rsa -q -N ""
+      args:
+        creates: /home/openshift/.ssh/id_rsa
+ 
+- name: Set the permissions for private and public keys on master nodes
+  hosts: etcd
+  tasks:
+    - name: setting the permissions of private keys to openshift on master nodes
+      file:
+        path: /home/openshift/.ssh/id_rsa
+        owner: openshift
+        group: openshift
+        mode: 0600
+
+    - name: setting the permissions of public keys to openshift on master nodes
+      file:
+        path: /home/openshift/.ssh/id_rsa.pub
+        owner: openshift
+        group: openshift
+        mode: 0644
+
+- name: Copying SSH keys to all openshift nodes from master nodes
+  hosts: etcd
+  become_user: openshift
+  become: yes
+  tasks:
+    - name: Running the ssh playbook to setup ssh connections from master nodes to openshift nodes
+      shell: ansible-playbook -i /home/openshift/hosts_test /home/openshift/ssh.yml
+         
+- name: Installing lvm package on all OpenShift Nodes
+  hosts: nodes
+  tasks:
+    - name: Install lvm packages on all openshift cluster nodes
+      yum:
+        name: lvm2
+        state: present
+
+- name: Creating required volumes and mouting the file system for etcd
+  hosts: etcd
+  become: yes
+  become_user: root
+  become_method: sudo
+  ignore_errors: yes
+  tasks:
+    - name: Create physical volumes for etcd    
+      shell: pvcreate /dev/sde
+
+    - name: Creating Volume groups for etcd
+      shell: vgcreate etcd-vg /dev/sde
+
+    - name: Creating logical Volumes for etcd
+      shell: lvcreate -n etcd-lv -l 100%VG etcd-vg
+
+    - name: Creating required mount directory for etcd
+      shell: mkdir -p /var/lib/etcd
+
+    - name: Creating file system for etcd
+      shell: mkfs.xfs /dev/mapper/etcd--vg-etcd--lv
+
+    - name: Adding the required etcd path into fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: 'etcd'
+        line: '/dev/mapper/etcd--vg-etcd--lv /var/lib/etcd xfs defaults 0 0'
+       
+    - name: Setting up mount location
+      file:
+        path: /var/lib/etcd
+        owner: root
+        group: root
+        mode: 0755
+        state: directory
+
+    - name: Mouting the etcd file system
+      shell: mount -a
+
+- name: Creating required volumes and file system for origin
+  hosts: nodes:!etcd
+  become: yes
+  become_user: root
+  become_method: sudo
+  ignore_errors: yes
+  tasks:
+    - name: Creating Physical volume for origin
+      shell: pvcreate /dev/sde
+
+    - name: Creating Volume groups for origin
+      shell: vgcreate origin-vg /dev/sde
+
+    - name: Creating logical Volumes for origin
+      shell: lvcreate -n origin-lv -l 100%VG origin-vg
+
+    - name: Creating required mount directory for origin
+      shell: mkdir -p /var/lib/origin
+
+    - name: Creating file system for origin
+      shell: mkfs.xfs /dev/mapper/origin--vg-origin--lv
+
+    - name: Adding the required origin path into fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: 'origin'
+        line: '/dev/mapper/origin--vg-origin--lv /var/lib/origin xfs defaults 0 0'
+
+    - name: Setting up mount location
+      file:
+        path: /var/lib/origin
+        owner: root
+        group: root
+        mode: 0755
+        state: directory
+
+    - name: Mouting the origin file system
+      shell: mount -a
+
+- name: Creating required volumes and file system for docker
+  hosts: nodes
+  become: yes
+  become_user: root
+  become_method: sudo
+  ignore_errors: yes
+  tasks:
+    - name: Creating physical volume for docker
+      shell: pvcreate /dev/sdf
+
+    - name: Creating Volume groups for docker
+      shell: vgcreate dockervg /dev/sdf
+
+    - name: Creating logical Volumes for docker
+      shell: lvcreate -n dockerlv -l 100%VG dockervg
+
+    - name: Creating required mount directory for docker
+      shell: mkdir -p /var/lib/docker
+
+    - name: Creating file system for docker
+      shell: mkfs.xfs /dev/dockervg/dockerlv
+
+    - name: Adding the required docker path into fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: 'docker'
+        line: '/dev/dockervg/dockerlv /var/lib/docker xfs defaults 0 0'
+
+    - name: Setting up mount location
+      file:
+        path: /var/lib/docker
+        owner: root
+        group: root
+        mode: 0711
+        state: directory
+
+    - name: Mouting the docker file system
+      shell: mount -a
+
+- name: Run the prerequisites tasks for all openshift cluster nodes
+  import_playbook: /home/openshift/openshift_3.9_ansible_automation/openshift_3.9_install/openshift-ansible/playbooks/prerequisites.yml
+
+- name: Run the OpenShift Installer for creating a OpenShift Cluster
+  import_playbook: /home/openshift/openshift_3.9_ansible_automation/openshift_3.9_install/openshift-ansible/playbooks/deploy_cluster.yml

@@ -1,0 +1,18 @@
+############################################################################
+# Enable Logging
+############################################################################
+
+openshift_logging_install_logging=true
+openshift_logging_storage_kind=nfs
+openshift_logging_es_cluster_size=3
+openshift_logging_storage_host=oc7nfsd.osc.utdlab.com
+openshift_logging_storage_access_modes=['ReadWriteOnce']
+openshift_logging_storage_nfs_directory=/usr/local/es-storage
+openshift_logging_storage_nfs_options='*(rw,root_squash)'
+openshift_logging_storage_volume_name=es-storage
+openshift_logging_storage_volume_size=30Gi
+openshift_logging_kibana_hostname=kibana.apps.akshay.osc.utdlab.com
+openshift_logging_curator_nodeselector={"region": "infra", "node_type": "infra"}
+openshift_logging_kibana_nodeselector={"region": "infra", "node_type": "infra"}
+openshift_logging_es_nodeselector={"region": "infra", "node_type": "infra"}
+

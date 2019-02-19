@@ -1,0 +1,15 @@
+#####################################################################################
+# Enable Grafana
+#####################################################################################
+
+openshift_hosted_grafana_deploy=true
+openshift_grafana_namespace=grafana
+openshift_grafana_prometheus_namespace=prometheus
+openshift_grafana_datasource_name=prometheus
+openshift_grafana_node_exporter=false
+openshift_grafana_graph_granularity=2m
+openshift_grafana_node_selector={"region": "infra", "node_type": "infra"}
+
+openshift_grafana_storage_type=pvc
+openshift_grafana_pvc_name=grafana
+openshift_grafana_pvc_access_modes=['ReadWriteOnce']

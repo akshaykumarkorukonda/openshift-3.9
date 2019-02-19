@@ -1,0 +1,19 @@
+##############################################################################
+# Enable Metrics
+##############################################################################
+
+openshift_metrics_install_metrics=true
+openshift_metrics_start_cluster=true
+openshift_metrics_cassandra_pvc_size20Gi
+openshift_metrics_cassandra_storage_type=pv
+openshift_metrics_hawkular_hostname=hawkular-metrics.apps.akshay.osc.utdlab.com
+openshift_metrics_storage_kind=nfs
+openshift_metrics_storage_access_modes=['ReadWriteOnce']
+openshift_metrics_storage_nfs_directory=/var/metrics/akshaymetrics
+openshift_metrics_storage_volume_name=akshaymetrics
+openshift_metrics_cassandra_pvc_prefix=akshaymetrics-pvc
+openshift_metrics_storage_host=oc7nfsd.osc.utdlab.com
+openshift_metrics_cassandra_nodeselector={"region": "infra", "node_type": "infra"}
+openshift_metrics_hawkular_nodeselector={"region": "infra", "node_type": "infra"}
+openshift_metrics_heapster_nodeselector={"region": "infra", "node_type": "infra"}
+

@@ -1,0 +1,61 @@
+---
+- hosts: all
+  gather_facts: false
+  connection: local
+  tasks:
+  - set_fact: creationdate="{{lookup('pipe','date "+%Y/%m/%d %H:%M"')}}"
+  - name: create the VM
+    vmware_guest:
+      hostname: 'vc01p.utd.com'
+      username: 'utd\osvc'
+      validate_certs: no
+      datacenter: 'Waltham PDOT'
+      cluster: 'PDOT'
+      resource_pool: null
+      folder: Terraform
+      name: '{{ inventory_hostname }}'
+      state: poweredon
+      notes: "Deployed with Ansible"
+      disk:
+      - size_gb: 32
+        type: thin
+        datastore: PDOT_ISCSI1
+      - size_gb: 32
+        type: thin
+        datastore: PDOT_ISCSI1
+      - size_gb: 32
+        type: thin
+        datastore: PDOT_ISCSI1
+      - size_gb: 10
+        type: thin
+        datastore: PDOT_ISCSI1
+      - size_gb: 20
+        type: thin
+        datastore: PDOT_ISCSI1
+
+      networks:
+      - name: '114 VM Network'
+        ip: '{{ custom_ip }}'
+        netmask: 255.255.255.0
+        gateway: 10.1.114.1
+        dns_servers:
+        - 10.1.113.228
+        - 10.1.113.229
+      hardware:
+        memory_mb: 6144
+        num_cpus: 1
+      customization:
+        dns_servers:
+        - 10.1.113.228
+        - 10.1.113.229
+        domain : osc.utdlab.com
+        hostname: '{{ inventory_hostname }}'
+      template: akshaytest
+      wait_for_ip_address: yes
+  - name: add to ansible hosts file
+    lineinfile:
+      dest: /etc/ansible/deployed_vms/vms
+      insertafter: '^\[vm_ansible_host_group]'
+      line: '{{ item }}'
+    with_items: '{{play_hosts}}'
+    run_once: true

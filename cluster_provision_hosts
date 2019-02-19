@@ -1,0 +1,12 @@
+[lb]
+akshaylbd custom_ip=10.1.114.218
+
+[masters]
+akshaymasterd custom_ip=10.1.114.215
+
+[apps]
+akshayappd custom_ip=10.1.114.217
+
+[infra]
+akshayinfrad custom_ip=10.1.114.216
+

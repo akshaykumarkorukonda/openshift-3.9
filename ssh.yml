@@ -1,0 +1,13 @@
+- name: Public key is deployed to managed hosts for Ansible
+  hosts: ssh
+  vars:
+    ansible_ssh_user: openshift
+    ansible_connection: ssh
+  tasks:
+    - name: Ensure key is in root's ~/.ssh/authorized_hosts
+      authorized_key:
+        user: openshift
+        state: present
+        key: '{{ item }}'
+      with_file:
+        - /home/openshift/.ssh/id_rsa.pub

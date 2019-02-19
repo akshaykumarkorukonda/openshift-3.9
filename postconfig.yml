@@ -1,0 +1,20 @@
+---
+- name: Post config tasks that are done after installing openshift cluster
+  hosts: etcd
+  become_user: openshift
+  become: yes
+  tasks: 
+    - name: check if all openshift nodes are running and accesible
+      command: oc get nodes -o wide 
+
+    - name: check if all pods are running in the openshift cluster
+      command: oc get pods -n default
+
+    - name: Installing htppd tools on openshift master nodes
+      command: sudo yum install -y httpd-tools
+
+    - name: Create a openshift admin account for logging in into the openshift cluster
+      command: sudo htpasswd -b -c /etc/origin/master/users.htpasswd openshift L3tsworkinakshay
+
+    - name: Adding cluster admin role for the openshift user account
+      command: oc adm policy add-cluster-role-to-user cluster-admin openshift
